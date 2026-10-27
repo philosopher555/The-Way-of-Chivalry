@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101a20">
+  <title>侠之道 · 重归来，战幽灵</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
+    :root {
+      color-scheme: dark;
+      --ink: #e9e5d7;
+      --muted: #a9b5b2;
+      --jade: #91d6bb;
+      --gold: #e8c77d;
+      --blood: #d97764;
+      --panel: rgba(15, 25, 29, .83);
+      --edge: rgba(202, 190, 151, .4);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #101a20; }
+    body { font-family: "Noto Serif SC", "Songti SC", serif; color: var(--ink); user-select: none; -webkit-user-select: none; }
+    #game { position: fixed; inset: 0; }
+    #game canvas { display: block; width: 100%; height: 100%; }
+    .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 46%, transparent 35%, rgba(3, 10, 14, .2) 100%), linear-gradient(0deg, rgba(4, 10, 12, .48), transparent 30%, rgba(5, 12, 16, .14)); }
+    .grain { position: fixed; inset: 0; opacity: .08; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E"); }
+    .topbar { position: fixed; left: 0; right: 0; top: 0; padding: 24px 34px 0; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+    .brand { display: flex; gap: 13px; align-items: center; }
+    .seal { width: 42px; height: 42px; border: 1px solid rgba(232, 199, 125, .78); color: var(--gold); display: grid; place-items: center; font-family: "Ma Shan Zheng", serif; font-size: 24px; transform: rotate(-4deg); box-shadow: inset 0 0 16px rgba(232, 199, 125, .1); }
+    .brand-title { font-family: "Ma Shan Zheng", serif; font-size: 25px; letter-spacing: 0; line-height: 1; text-shadow: 0 2px 12px #000; }
+    .brand-sub { color: #b6c1b9; font-size: 10px; letter-spacing: 2px; margin-top: 6px; }
+    .chapter-label { text-align: right; color: var(--gold); font-size: 12px; letter-spacing: 2px; text-shadow: 0 1px 9px #000; }
+    .chapter-label span { display: block; margin-top: 6px; font-size: 10px; color: #bac5be; letter-spacing: 1px; }
+    .objective { position: fixed; left: 34px; top: 118px; min-width: 220px; padding: 12px 16px 13px; border-left: 2px solid var(--gold); background: linear-gradient(90deg, rgba(10, 19, 22, .82), rgba(10, 19, 22, .04)); opacity: 0; transform: translateX(-9px); transition: .45s ease; pointer-events: none; }
+    .objective.show { opacity: 1; transform: translateX(0); }
+    .eyebrow { color: var(--gold); font-size: 10px; letter-spacing: 2px; }
+    #objectiveText { margin-top: 6px; font-size: 14px; }
+    #enemyCount { color: var(--jade); font-size: 11px; margin-top: 6px; }
+    .health { position: fixed; left: 34px; bottom: 35px; width: 230px; opacity: 0; transition: .4s ease; pointer-events: none; }
+    .health.show { opacity: 1; }
+    .health-label { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #e7e2d3; margin-bottom: 8px; }
+    .health-label span:first-child { color: var(--gold); letter-spacing: 1px; }
+    .bar { height: 7px; border: 1px solid rgba(231, 221, 193, .46); padding: 1px; background: rgba(5, 11, 12, .56); }
+    #healthFill { height: 100%; width: 100%; background: linear-gradient(90deg, #c6604e, #e6a267); transition: width .22s; box-shadow: 0 0 9px rgba(224, 124, 81, .55); }
+    .dialogue { position: fixed; left: 50%; bottom: 8.5%; transform: translate(-50%, 18px); width: min(660px, calc(100% - 40px)); min-height: 116px; padding: 17px 23px 15px; background: linear-gradient(110deg, rgba(11, 19, 22, .94), rgba(23, 32, 32, .83)); border: 1px solid var(--edge); box-shadow: 0 15px 50px rgba(0,0,0,.4), inset 0 0 30px rgba(189, 170, 116, .035); opacity: 0; visibility: hidden; transition: .28s ease; z-index: 4; }
+    .dialogue.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+    .dialogue::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(206, 194, 158, .12); pointer-events: none; }
+    #speaker { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+    #line { min-height: 28px; margin-top: 9px; font-size: 15px; line-height: 1.8; color: #f0eee5; }
+    .dialogue-hint { position: absolute; right: 19px; bottom: 12px; color: #a8b7b0; font-size: 10px; letter-spacing: 1px; animation: breathe 1.5s ease-in-out infinite; }
+    @keyframes breathe { 50% { opacity: .46; } }
+    .intro { position: fixed; top: 24%; left: 50%; transform: translate(-50%, 10px); text-align: center; pointer-events: none; opacity: 0; transition: .9s ease; white-space: nowrap; }
+    .intro.show { opacity: 1; transform: translate(-50%, 0); }
+    .intro-kicker { color: var(--gold); font-size: 11px; letter-spacing: 6px; text-shadow: 0 2px 14px #000; }
+    .intro h1 { margin: 10px 0 7px; font-family: "Ma Shan Zheng", serif; font-weight: 400; font-size: clamp(35px, 6vw, 67px); letter-spacing: 2px; text-shadow: 0 4px 22px rgba(0,0,0,.86); }
+    .intro p { margin: 0; color: #d0d5c9; font-size: 12px; letter-spacing: 3px; text-shadow: 0 2px 10px #000; }
+    .begin { position: fixed; left: 50%; bottom: 13%; transform: translate(-50%, 10px); padding: 12px 29px; min-width: 168px; background: rgba(18, 30, 31, .76); border: 1px solid rgba(232, 199, 125, .75); color: var(--ink); font-family: inherit; font-size: 14px; letter-spacing: 2px; cursor: pointer; opacity: 0; visibility: hidden; transition: .4s ease, background .2s; box-shadow: 0 5px 25px rgba(0,0,0,.28); }
+    .begin.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+    .begin:hover { background: rgba(130, 102, 54, .7); }
+    .begin .arrow { color: var(--gold); margin-left: 12px; }
+    .controls { position: fixed; inset: 0; pointer-events: none; z-index: 3; opacity: 0; visibility: hidden; transition: opacity .4s; }
+    .controls.show { opacity: 1; visibility: visible; }
+    .stick-zone { position: absolute; bottom: max(28px, env(safe-area-inset-bottom)); left: max(28px, env(safe-area-inset-left)); width: 124px; height: 124px; pointer-events: auto; touch-action: none; }
+    .stick-base { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(228, 221, 192, .36); background: radial-gradient(circle, rgba(48, 65, 64, .4), rgba(15, 24, 27, .32)); box-shadow: inset 0 0 20px rgba(0,0,0,.16); }
+    .stick-base::before, .stick-base::after { content: ""; position: absolute; background: rgba(230, 226, 205, .18); }
+    .stick-base::before { width: 1px; height: 82%; left: 50%; top: 9%; }
+    .stick-base::after { height: 1px; width: 82%; top: 50%; left: 9%; }
+    .stick-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px; border: 1px solid rgba(238, 216, 159, .68); border-radius: 50%; background: rgba(193, 159, 94, .35); box-shadow: 0 2px 14px rgba(0,0,0,.38), inset 0 0 12px rgba(255,255,255,.09); transition: transform .07s linear; }
+    .stick-caption { position: absolute; left: 50%; bottom: -19px; transform: translateX(-50%); color: rgba(235, 230, 209, .73); font-size: 9px; letter-spacing: 1px; white-space: nowrap; }
+    .action-buttons { position: absolute; right: max(31px, env(safe-area-inset-right)); bottom: max(30px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 15px; pointer-events: auto; }
+    .action { width: 70px; height: 70px; border-radius: 50%; border: 1px solid rgba(235, 218, 174, .57); background: radial-gradient(circle at 35% 25%, rgba(128, 120, 86, .55), rgba(20, 32, 33, .85) 70%); color: #f1e8cd; font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-shadow: 0 4px 18px rgba(0,0,0,.3), inset 0 0 17px rgba(226, 200, 139, .1); touch-action: manipulation; }
+    .action:active { transform: scale(.93); }
+    .action.attack { width: 82px; height: 82px; border-color: rgba(230, 147, 112, .73); background: radial-gradient(circle at 35% 25%, rgba(151, 87, 67, .78), rgba(30, 27, 26, .9) 72%); }
+    .action-symbol { font-size: 24px; line-height: 1; }
+    .attack .action-symbol { font-size: 29px; }
+    .action-name { font-size: 10px; letter-spacing: 1px; }
+    .action-key { color: rgba(226, 219, 196, .6); font: 9px sans-serif; margin-top: 1px; }
+    .desktop-hint { position: absolute; right: 34px; bottom: 24px; color: rgba(219, 224, 211, .65); font-size: 10px; letter-spacing: .5px; }
+    .desktop-hint kbd { border: 1px solid rgba(227, 222, 201, .32); padding: 2px 5px; margin-left: 5px; color: #e9e4d7; background: rgba(14, 24, 27, .52); font: 10px sans-serif; }
+    .toast { position: fixed; left: 50%; top: 19%; transform: translate(-50%, -5px); color: #f1dfa6; font-size: 13px; letter-spacing: 2px; text-shadow: 0 2px 12px #000; opacity: 0; transition: .3s ease; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .chapter-end { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; background: rgba(5, 12, 15, .55); opacity: 0; visibility: hidden; transition: .8s; }
+    .chapter-end.show { opacity: 1; visibility: visible; }
+    .end-copy { text-align: center; transform: translateY(12px); transition: .7s .2s; }
+    .chapter-end.show .end-copy { transform: translateY(0); }
+    .end-kicker { color: var(--gold); font-size: 11px; letter-spacing: 5px; }
+    .end-copy h2 { font: 400 clamp(38px, 7vw, 68px) "Ma Shan Zheng", serif; margin: 14px 0 11px; text-shadow: 0 3px 20px #000; }
+    .end-copy p { margin: 0; color: #d3d8d0; line-height: 2; font-size: 14px; }
+    .end-copy .next { color: var(--gold); margin-top: 24px; letter-spacing: 3px; font-size: 12px; }
+    @media (max-width: 700px) {
+      .topbar { padding: 17px 17px 0; }
+      .seal { width: 35px; height: 35px; font-size: 20px; }
+      .brand-title { font-size: 21px; }
+      .brand-sub { font-size: 8px; letter-spacing: 1px; }
+      .chapter-label { font-size: 10px; }
+      .chapter-label span { font-size: 8px; }
+      .objective { left: 17px; top: 91px; min-width: 190px; padding: 10px 12px; }
+      .health { left: 17px; bottom: 34px; width: 145px; }
+      .health-label { font-size: 9px; }
+      .stick-zone { left: 19px; bottom: max(31px, env(safe-area-inset-bottom)); width: 110px; height: 110px; }
+      .action-buttons { right: 19px; bottom: max(34px, env(safe-area-inset-bottom)); gap: 9px; }
+      .action { width: 59px; height: 59px; }
+      .action.attack { width: 72px; height: 72px; }
+      .desktop-hint { display: none; }
+      .dialogue { bottom: 24%; width: calc(100% - 32px); padding: 14px 17px 17px; min-height: 112px; }
+      #line { font-size: 13px; line-height: 1.75; }
+      .begin { bottom: 11%; }
+      .intro { top: 23%; }
+    }
+    @media (max-height: 500px) and (orientation: landscape) {
+      .stick-zone { width: 92px; height: 92px; bottom: 16px; }
+      .action-buttons { bottom: 17px; }
+      .action { width: 53px; height: 53px; }
+      .action.attack { width: 63px; height: 63px; }
+      .health { bottom: 20px; }
+      .dialogue { bottom: 9%; min-height: 100px; }
+      .begin { bottom: 8%; }
+      .intro { top: 18%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game" aria-label="侠之道三维游戏场景"></div>
+  <div class="vignette"></div><div class="grain"></div>
+  <header class="topbar">
+    <div class="brand"><div class="seal">侠</div><div><div class="brand-title">侠之道</div><div class="brand-sub">一念守苍生 · 一剑赴山河</div></div></div>
+    <div class="chapter-label">第一章<span>重归来，战幽灵</span></div>
+  </header>
+  <section class="intro show" id="intro"><div class="intro-kicker">长 夜 将 尽</div><h1>重归来，战幽灵</h1><p>归乡的剑，今夜再鸣</p></section>
+  <button class="begin show" id="begin">御剑降落 <span class="arrow">↓</span></button>
+  <aside class="objective" id="objective"><div class="eyebrow">当前目标</div><div id="objectiveText">护住城主，击退幽灵</div><div id="enemyCount">幽灵 0 / 3</div></aside>
+  <section class="health" id="health"><div class="health-label"><span>侠客 · 气血</span><span id="healthText">100 / 100</span></div><div class="bar"><div id="healthFill"></div></div></section>
+  <section class="dialogue" id="dialogue"><div id="speaker"></div><div id="line"></div><div class="dialogue-hint">点击继续　›</div></section>
+  <div class="toast" id="toast"></div>
+  <div class="controls" id="controls">
+    <div class="stick-zone" id="stick"><div class="stick-base"></div><div class="stick-knob" id="knob"></div><div class="stick-caption">移 动</div></div>
+    <div class="action-buttons">
+      <button class="action" id="skill" aria-label="施展剑气"><span class="action-symbol">✧</span><span class="action-name">剑气</span><span class="action-key">E</span></button>
+      <button class="action attack" id="attack" aria-label="挥剑攻击"><span class="action-symbol">⚔</span><span class="action-name">挥剑</span><span class="action-key">空格</span></button>
+    </div>
+    <div class="desktop-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动　<kbd>空格</kbd> 挥剑　<kbd>E</kbd> 剑气</div>
+  </div>
+  <section class="chapter-end" id="chapterEnd"><div class="end-copy"><div class="end-kicker">第一章 · 完</div><h2>城门之后，还有谁？</h2><p>幽灵退散，城中却无人记得那道黑影。<br>它站在城墙之上，手里握着一柄与你一模一样的剑。</p><div class="next">第二章 · 镜中人　即将开启</div></div></section>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+
+    const root = document.querySelector('#game');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x788c8c);
+    scene.fog = new THREE.FogExp2(0x788c8c, 0.012);
+    const camera = new THREE.PerspectiveCamera(54, innerWidth / innerHeight, 0.1, 180);
+    camera.position.set(0, 8, 15);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.13;
+    root.appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xc9e0d9, 0x332c28, 2.05);
+    scene.add(hemi);
+    const moon = new THREE.DirectionalLight(0xf4d9a8, 3.2);
+    moon.position.set(-11, 18, 8); moon.castShadow = true;
+    moon.shadow.mapSize.set(1024, 1024);
+    moon.shadow.camera.left = -22; moon.shadow.camera.right = 22;
+    moon.shadow.camera.top = 22; moon.shadow.camera.bottom = -22;
+    scene.add(moon);
+    const moonBall = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 16), new THREE.MeshBasicMaterial({ color: 0xf0d8a4 }));
+    moonBall.position.set(18, 25, -56); scene.add(moonBall);
+
+    const mats = {};
+    const material = (name, color, roughness = .82, metalness = 0, extra = {}) => mats[name] = new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
+    material('ground', 0x566456); material('earth', 0x75624b); material('stone', 0x767a6e); material('darkStone', 0x434b47);
+    material('wood', 0x483c30); material('woodLight', 0x806044); material('roof', 0x303b39); material('roofEdge', 0x69716a);
+    material('roofTile', 0x45534d); material('roofTileAlt', 0x526158); material('windowDark', 0x182726, .3, 0, { emissive: 0x804d2b, emissiveIntensity: .35 });
+    material('cloth', 0xa53f36); material('gold', 0xd5b773, .4, .58); material('heroCloth', 0x304f50);
+    material('heroLight', 0xb9c9b5, .61, .1); material('chiefCloth', 0x9a7848); material('skin', 0xe0b597);
+    material('skinShadow', 0x9b6653); material('clothShadow', 0x202e30); material('jadeInlay', 0x76c7b5, .28, .4, { emissive: 0x286a62, emissiveIntensity: .35 });
+    material('hair', 0x252928); material('ghost', 0x85e2d7, .28, .12, { transparent: true, opacity: .73, emissive: 0x44cfc5, emissiveIntensity: 1.15 });
+    material('ghostDark', 0x2a8589, .34, .1, { transparent: true, opacity: .86, emissive: 0x14747c, emissiveIntensity: .7 });
+    material('blade', 0xc3d8ce, .2, .8, { emissive: 0x5ca39c, emissiveIntensity: .3 });
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mats.ground);
+    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 58), mats.earth);
+    path.rotation.x = -Math.PI / 2; path.position.set(0, .012, -14); path.receiveShadow = true; scene.add(path);
+    const pathEdgeMat = new THREE.MeshStandardMaterial({ color: 0x9c8965, roughness: 1 });
+    for (let side of [-1, 1]) {
+      const verge = new THREE.Mesh(new THREE.BoxGeometry(.12, .025, 48), pathEdgeMat);
+      verge.position.set(side * 2.8, .025, -14); scene.add(verge);
+    }
+    const paving = new THREE.InstancedMesh(new THREE.BoxGeometry(.38, .055, .46), mats.stone, 520);
+    const pavingTransform = new THREE.Object3D();
+    for (let i = 0; i < 520; i++) {
+      pavingTransform.position.set((Math.random() - .5) * 5.15, .055, -41 + Math.random() * 53);
+      pavingTransform.rotation.set(0, Math.random() * .08, 0);
+      pavingTransform.updateMatrix(); paving.setMatrixAt(i, pavingTransform.matrix);
+      paving.setColorAt(i, new THREE.Color().setHSL(.12 + Math.random() * .045, .12 + Math.random() * .14, .32 + Math.random() * .22));
+    }
+    paving.receiveShadow = true; scene.add(paving);
+    for (let i = 0; i < 80; i++) {
+      const x = (Math.random() - .5) * 55, z = (Math.random() - .5) * 52;
+      if (Math.abs(x) < 3.8 && z < 11 && z > -42) continue;
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(.12 + Math.random() * .28, 0), i % 4 ? mats.darkStone : mats.stone);
+      rock.position.set(x, .12, z); rock.scale.y = .45; rock.rotation.set(Math.random(), Math.random(), Math.random()); rock.castShadow = true; scene.add(rock);
+    }
+
+    function box(parent, size, pos, mat, cast = true) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), mat);
+      mesh.position.set(...pos); mesh.castShadow = cast; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+    }
+    function tree(x, z, scale = 1) {
+      const group = new THREE.Group(); group.position.set(x, 0, z); group.scale.setScalar(scale); scene.add(group);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.13, .25, 2, 6), mats.wood); trunk.position.y = 1; trunk.castShadow = true; group.add(trunk);
+      const leaves = [
+        [0, 2.1, 0, 1.05, 1.35], [.42, 2.7, .08, .73, 1], [-.42, 2.55, -.08, .78, 1.05], [.05, 3.28, 0, .55, .8]
+      ];
+      for (const [lx, ly, lz, r, h] of leaves) {
+        const crown = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), new THREE.MeshStandardMaterial({ color: [0x344c43, 0x425647, 0x3c5149][Math.floor(Math.random() * 3)], roughness: 1 }));
+        crown.position.set(lx, ly, lz); crown.castShadow = true; group.add(crown);
+      }
+      return group;
+    }
+    for (let x = -24; x <= 24; x += 4.5) {
+      if (Math.abs(x) < 7) continue;
+      tree(x + (Math.random() - .5) * 2, -17 - Math.random() * 14, .8 + Math.random() * .65);
+    }
+    for (let i = 0; i < 10; i++) tree((Math.random() - .5) * 48, 5 + Math.random() * 19, .8 + Math.random() * .7);
+
+    function roof(parent, x, y, z, width, depth, height, mat = mats.roof) {
+      const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(width, .15, depth), mat); top.position.y = height; top.castShadow = true; g.add(top);
+      for (const side of [-1, 1]) {
+        const slope = new THREE.Mesh(new THREE.BoxGeometry(width * 1.08, .13, depth * .58), mat);
+        slope.position.set(0, height - .3, side * depth * .28); slope.rotation.x = side * -.31; slope.castShadow = true; g.add(slope);
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, width * 1.1, 6), mats.woodLight);
+        beam.rotation.z = Math.PI / 2; beam.position.set(0, height - .48, side * depth * .55); g.add(beam);
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 7; col++) {
+            const tile = new THREE.Mesh(new THREE.BoxGeometry(width / 7 * .94, .065, depth * .18), (row + col) % 3 ? mats.roofTile : mats.roofTileAlt);
+            tile.position.set(-width * .43 + col * width * .143, height - .13 - row * .13, side * depth * (.1 + row * .15));
+            tile.rotation.x = side * -.31; tile.receiveShadow = true; g.add(tile);
+          }
+        }
+      }
+      return g;
+    }
+    function building(x, z, width, depth, height, wallMat = mats.wood) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+      box(g, [width, height, depth], [0, height / 2, 0], wallMat);
+      for (const side of [-1, 1]) {
+        box(g, [.18, height + .25, .2], [side * (width / 2 - .2), (height + .25) / 2, depth / 2 + .02], mats.woodLight);
+      }
+      const front = depth / 2 + .08;
+      box(g, [1.14, 1.92, .12], [0, .96, front], mats.wood);
+      for (let plank = -1; plank <= 1; plank++) box(g, [.025, 1.72, .025], [plank * .32, .94, front + .07], mats.woodLight, false);
+      box(g, [1.35, .13, .18], [0, 1.96, front + .02], mats.woodLight);
+      const latch = new THREE.Mesh(new THREE.SphereGeometry(.055, 7, 6), mats.gold); latch.position.set(.35, .95, front + .1); g.add(latch);
+      for (const side of [-1, 1]) {
+        const window = new THREE.Group(); window.position.set(side * width * .29, height * .64, front); g.add(window);
+        box(window, [.72, .78, .09], [0, 0, 0], mats.woodLight);
+        box(window, [.53, .58, .08], [0, 0, .055], mats.windowDark);
+        box(window, [.055, .65, .04], [0, 0, .11], mats.woodLight);
+        box(window, [.58, .05, .04], [0, 0, .11], mats.woodLight);
+        box(window, [.82, .09, .15], [0, .45, .02], mats.wood);
+      }
+      for (let beamY = .45; beamY < height; beamY += .54) box(g, [width - .35, .075, .08], [0, beamY, front], mats.woodLight, false);
+      roof(g, 0, height, 0, width + .7, depth + .9, .55, mats.roof);
+      return g;
+    }
+    building(-8, -20, 5.2, 3.7, 2.8); building(8, -23, 5.6, 4, 3.1);
+    building(-10, -31, 4.2, 3.6, 2.4); building(11, -34, 4.8, 3.8, 2.7);
+    building(-15, -13, 4.6, 3.2, 2.5); building(15, -14, 4.8, 3.4, 2.6);
+
+    const wall = new THREE.Group(); scene.add(wall);
+    box(wall, [38, 3.6, 1.4], [0, 1.8, -39], mats.stone);
+    box(wall, [8, 4, 1.7], [-8, 2, -39], mats.stone);
+    box(wall, [8, 4, 1.7], [8, 2, -39], mats.stone);
+    box(wall, [8, 1.2, 1.8], [0, 3.4, -39], mats.stone);
+    box(wall, [4.6, 3.1, .32], [0, 1.55, -38.15], mats.wood);
+    for (let x = -17; x <= 17; x += 3.3) {
+      if (Math.abs(x) < 5) continue;
+      box(wall, [1.1, .8, 1.7], [x, 4, -39], mats.stone);
+    }
+    for (const x of [-10.2, 10.2]) {
+      const tower = new THREE.Group(); tower.position.set(x, 0, -39); scene.add(tower);
+      box(tower, [3, 7, 3], [0, 3.5, 0], mats.darkStone);
+      roof(tower, 0, 6.7, 0, 4.2, 4.1, 1.3, mats.roof);
+      const slit = new THREE.Mesh(new THREE.PlaneGeometry(.42, 1.2), new THREE.MeshBasicMaterial({ color: 0xf5bd6d })); slit.position.set(0, 4.6, 1.52); tower.add(slit);
+    }
+    const gateGlow = new THREE.PointLight(0xe4a860, 35, 18); gateGlow.position.set(0, 2.3, -37); scene.add(gateGlow);
+
+    const lanternLights = [];
+    function lantern(x, z) {
+      const post = new THREE.Group(); post.position.set(x, 0, z); scene.add(post);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.075, .12, 2.3, 7), mats.wood); pole.position.y = 1.15; pole.castShadow = true; post.add(pole);
+      box(post, [.62, .68, .62], [0, 2.43, 0], mats.wood);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(.43, .47, .43), new THREE.MeshBasicMaterial({ color: 0xffc66e, transparent: true, opacity: .85 })); lamp.position.y = 2.43; post.add(lamp);
+      const light = new THREE.PointLight(0xffb95e, 22, 8); light.position.y = 2.45; post.add(light);
+      lanternLights.push({ light, phase: Math.random() * Math.PI * 2 });
+      for (const s of [-1, 1]) box(post, [.76, .07, .76], [0, 2.82, 0], mats.roof)[`rotation`].y = s * .785;
+    }
+    lantern(-3.7, -1.5); lantern(3.7, -1.5); lantern(-4, -15); lantern(4, -15);
+
+    function human(parent, options = {}) {
+      const { robe = mats.heroCloth, skin = mats.skin, hair = mats.hair, scale = 1, chief = false } = options;
+      const person = new THREE.Group(); person.scale.setScalar(scale); parent.add(person);
+      person.userData.arms = []; person.userData.legs = [];
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(.25, .37, .82, 9), robe); torso.position.y = 1.02; torso.castShadow = true; person.add(torso);
+      const shoulders = new THREE.Mesh(new THREE.SphereGeometry(.31, 10, 8), robe); shoulders.scale.set(1.3, .46, .8); shoulders.position.y = 1.34; person.add(shoulders);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 10), skin); head.position.y = 1.68; head.castShadow = true; person.add(head);
+      const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.21, 12, 8, 0, Math.PI * 2, 0, Math.PI * .55), hair); hairCap.position.y = 1.74; person.add(hairCap);
+      const bun = new THREE.Mesh(new THREE.SphereGeometry(.115, 8, 7), hair); bun.position.set(0, 1.95, -.04); person.add(bun);
+      const ponytail = new THREE.Mesh(new THREE.ConeGeometry(.075, .48, 7), hair); ponytail.position.set(0, 1.59, -.2); ponytail.rotation.x = -.3; person.add(ponytail);
+      for (const side of [-1, 1]) {
+        const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(.026, 7, 6), mats.heroLight); eyeWhite.position.set(side * .075, 1.69, .173); person.add(eyeWhite);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(.013, 6, 5), mats.hair); pupil.position.set(side * .075, 1.69, .195); person.add(pupil);
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(.075, .018, .025), hair); brow.position.set(side * .077, 1.735, .17); brow.rotation.z = side * -.12; person.add(brow);
+      }
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(.035, .105, 5), mats.skinShadow); nose.position.set(0, 1.65, .205); nose.rotation.x = Math.PI / 2; person.add(nose);
+      const hem = new THREE.Mesh(new THREE.ConeGeometry(.43, .42, 9), robe); hem.position.y = .58; hem.castShadow = true; person.add(hem);
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(.32, .34, .095, 10), chief ? mats.gold : mats.clothShadow); belt.position.y = .85; belt.castShadow = true; person.add(belt);
+      const buckle = new THREE.Mesh(new THREE.BoxGeometry(.12, .13, .055), mats.gold); buckle.position.set(0, .85, .335); person.add(buckle);
+      const frontPanel = new THREE.Mesh(new THREE.BoxGeometry(.24, .69, .035), chief ? mats.clothShadow : mats.heroLight); frontPanel.position.set(0, .99, .28); frontPanel.rotation.z = -.035; person.add(frontPanel);
+      const collarLeft = new THREE.Mesh(new THREE.BoxGeometry(.12, .38, .06), chief ? mats.gold : mats.jadeInlay); collarLeft.position.set(-.085, 1.32, .22); collarLeft.rotation.z = -.46; person.add(collarLeft);
+      const collarRight = collarLeft.clone(); collarRight.position.x = .085; collarRight.rotation.z = .46; person.add(collarRight);
+      for (const s of [-1, 1]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(.105, .13, .48, 8), chief ? mats.darkStone : mats.clothShadow); leg.position.set(s * .17, .24, 0); leg.castShadow = true; person.add(leg);
+        person.userData.legs.push({ mesh: leg, side: s });
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(.23, .14, .35), mats.wood); boot.position.set(s * .17, .055, .055); person.add(boot);
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.085, .12, .48, 8), robe); arm.position.set(s * .36, 1.05, 0); arm.rotation.z = s * -.52; arm.castShadow = true; person.add(arm);
+        person.userData.arms.push({ mesh: arm, side: s, rest: s * -.52 });
+        const cuff = new THREE.Mesh(new THREE.CylinderGeometry(.105, .105, .1, 8), chief ? mats.gold : mats.jadeInlay); cuff.position.set(s * .58, .84, .02); cuff.rotation.z = s * -.52; person.add(cuff);
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 7), skin); hand.position.set(s * .61, .74, .02); person.add(hand);
+        if (chief || robe === mats.heroCloth) {
+          const shoulderGuard = new THREE.Mesh(new THREE.SphereGeometry(.19, 8, 6), chief ? mats.gold : mats.darkStone); shoulderGuard.scale.set(1.05, .38, .9); shoulderGuard.position.set(s * .3, 1.39, .02); person.add(shoulderGuard);
+          const rivet = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 5), mats.gold); rivet.position.set(s * .3, 1.43, .18); person.add(rivet);
+        }
+      }
+      if (chief) {
+        const trim = new THREE.Mesh(new THREE.TorusGeometry(.23, .024, 5, 12), mats.gold); trim.position.y = 1.79; trim.rotation.x = Math.PI / 2; person.add(trim);
+        for (let i = -1; i <= 1; i++) {
+          const crest = new THREE.Mesh(new THREE.BoxGeometry(.055, .21, .055), mats.gold); crest.position.set(i * .085, 1.98, -.02); crest.rotation.z = i * -.16; person.add(crest);
+        }
+        const medallion = new THREE.Mesh(new THREE.TorusGeometry(.095, .025, 5, 12), mats.gold); medallion.position.set(0, 1.15, .29); person.add(medallion);
+      }
+      return person;
+    }
+    function swordMesh(parent, size = 1) {
+      const g = new THREE.Group(); g.scale.setScalar(size); parent.add(g);
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(.22, 2.1, .08), mats.blade); blade.position.y = .42; blade.castShadow = true; g.add(blade);
+      const fuller = new THREE.Mesh(new THREE.BoxGeometry(.035, 1.45, .014), mats.jadeInlay); fuller.position.set(0, .46, .048); g.add(fuller);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.16, .38, 4), mats.blade); tip.position.y = 1.66; tip.rotation.y = Math.PI / 4; tip.castShadow = true; g.add(tip);
+      box(g, [.62, .1, .19], [0, -.68, 0], mats.gold);
+      const grip = new THREE.Mesh(new THREE.CylinderGeometry(.055, .065, .59, 7), mats.wood); grip.position.y = -.99; g.add(grip);
+      for (let wrap = 0; wrap < 4; wrap++) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.059, .012, 4, 8), mats.gold); ring.position.y = -.78 - wrap * .12; ring.rotation.x = Math.PI / 2; g.add(ring);
+      }
+      const pommel = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), mats.gold); pommel.position.y = -1.31; g.add(pommel);
+      return g;
+    }
+
+    const swordRide = new THREE.Group(); swordRide.position.set(0, 8, 14); scene.add(swordRide);
+    const rideBlade = new THREE.Mesh(new THREE.BoxGeometry(1.25, .16, 5.2), mats.blade); rideBlade.position.y = -.43; rideBlade.castShadow = true; swordRide.add(rideBlade);
+    const rideRidge = new THREE.Mesh(new THREE.BoxGeometry(.1, .04, 4.65), mats.jadeInlay); rideRidge.position.set(0, -.325, -.12); swordRide.add(rideRidge);
+    for (const side of [-1, 1]) {
+      const cuttingEdge = new THREE.Mesh(new THREE.BoxGeometry(.055, .045, 4.8), mats.heroLight); cuttingEdge.position.set(side * .59, -.39, -.08); swordRide.add(cuttingEdge);
+      for (let mark = 0; mark < 4; mark++) {
+        const rune = new THREE.Mesh(new THREE.BoxGeometry(.08, .025, .24), mats.gold); rune.position.set(side * .2, -.335, -1.45 + mark * .62); swordRide.add(rune);
+      }
+    }
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(1.8, .16, .28), mats.gold); guard.position.set(0, -.32, 2.15); swordRide.add(guard);
+    const rideTip = new THREE.Mesh(new THREE.ConeGeometry(.63, .85, 4), mats.blade); rideTip.rotation.x = -Math.PI / 2; rideTip.position.set(0, -.43, -3); swordRide.add(rideTip);
+    const rideGrip = new THREE.Mesh(new THREE.CylinderGeometry(.11, .13, .82, 8), mats.wood); rideGrip.rotation.x = Math.PI / 2; rideGrip.position.set(0, -.34, 2.62); swordRide.add(rideGrip);
+    const ridePommel = new THREE.Mesh(new THREE.SphereGeometry(.19, 8, 6), mats.gold); ridePommel.position.set(0, -.34, 3.08); swordRide.add(ridePommel);
+    const rider = human(swordRide, { robe: mats.heroCloth, scale: .85 }); rider.position.set(-.3, 0, .1);
+    const lord = human(swordRide, { robe: mats.chiefCloth, scale: .82, chief: true }); lord.position.set(.35, 0, 1.25);
+    const introTrailMat = new THREE.MeshBasicMaterial({ color: 0xa5dfd0, transparent: true, opacity: .3 });
+    const introTrail = new THREE.Mesh(new THREE.CylinderGeometry(.04, .55, 9, 16, 1, true), introTrailMat); introTrail.position.set(0, -.25, 4); introTrail.rotation.x = Math.PI / 2; swordRide.add(introTrail);
+    const riderSword = swordMesh(rider, .38); riderSword.position.set(.4, 1, -.1); riderSword.rotation.z = -.8;
+
+    const villagers = [];
+    for (let i = 0; i < 5; i++) {
+      const v = human(scene, { robe: i % 2 ? mats.cloth : mats.heroLight, scale: .82 + Math.random() * .12 });
+      v.position.set(-2.2 + i * 1.1, 0, -3.2 - Math.random() * .8); v.rotation.y = Math.PI; villagers.push(v);
+    }
+    for (const v of villagers) v.visible = false;
+
+    const player = human(scene, { robe: mats.heroCloth, scale: 1 }); player.position.set(-1.3, 0, 2.5); player.visible = false;
+    const playerWeapon = swordMesh(player, .48); playerWeapon.position.set(.48, .96, .04); playerWeapon.rotation.z = -.85;
+
+    const ghosts = [];
+    function ghostEnemy(x, z, index) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+      const hood = new THREE.Mesh(new THREE.SphereGeometry(.42, 12, 9), mats.ghost); hood.scale.set(.85, 1.13, .75); hood.position.y = 1.28; hood.castShadow = true; g.add(hood);
+      const cloak = new THREE.Mesh(new THREE.ConeGeometry(.55, 1.25, 8, 2, true), mats.ghostDark); cloak.position.y = .62; cloak.rotation.x = Math.PI; cloak.castShadow = true; g.add(cloak);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(.32, .66, 7), mats.ghost); tail.position.set(.12, .08, .04); tail.rotation.z = .35; g.add(tail);
+      for (let rag = 0; rag < 5; rag++) {
+        const angle = rag / 5 * Math.PI * 2;
+        const tatter = new THREE.Mesh(new THREE.ConeGeometry(.13, .48 + (rag % 2) * .16, 5), rag % 2 ? mats.ghost : mats.ghostDark);
+        tatter.position.set(Math.sin(angle) * .31, .06, Math.cos(angle) * .31); tatter.rotation.z = Math.sin(angle) * .3; g.add(tatter);
+      }
+      for (const side of [-1, 1]) {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.06, .095, .55, 7), mats.ghostDark); arm.position.set(side * .43, .89, .04); arm.rotation.z = side * -.72; g.add(arm);
+        const claw = new THREE.Mesh(new THREE.ConeGeometry(.065, .28, 5), mats.ghost); claw.position.set(side * .64, .62, .08); claw.rotation.z = side * -.5; g.add(claw);
+      }
+      for (const side of [-1, 1]) {
+        const eyeSocket = new THREE.Mesh(new THREE.SphereGeometry(.09, 7, 6), mats.ghostDark); eyeSocket.position.set(side * .14, 1.34, .32); g.add(eyeSocket);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd68c })); eye.position.set(side * .14, 1.34, .39); g.add(eye);
+      }
+      const mouth = new THREE.Mesh(new THREE.ConeGeometry(.075, .18, 3), mats.clothShadow); mouth.position.set(0, 1.11, .38); mouth.rotation.x = Math.PI; g.add(mouth);
+      const orb = new THREE.PointLight(0x62d7d0, 2, 4); orb.position.y = 1.15; g.add(orb);
+      g.userData = { alive: true, hp: index === 0 ? 2 : 1, speed: .55 + Math.random() * .18, phase: Math.random() * 8, attackCooldown: 1 + Math.random(), tatters: g.children.filter(child => child.geometry.type === 'ConeGeometry') };
+      ghosts.push(g); return g;
+    }
+    ghostEnemy(-2.3, -7, 0); ghostEnemy(2.6, -8.7, 1); ghostEnemy(.2, -11.2, 2);
+    ghosts.forEach(g => g.visible = false);
+
+    const particles = [];
+    function burst(position, color = 0x9bf2df, count = 18, speed = 3) {
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .95 });
+      for (let i = 0; i < count; i++) {
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(.035 + Math.random() * .055, 5, 4), mat);
+        mesh.position.copy(position); scene.add(mesh);
+        const velocity = new THREE.Vector3((Math.random() - .5) * speed, Math.random() * speed, (Math.random() - .5) * speed);
+        particles.push({ mesh, velocity, life: .45 + Math.random() * .55, max: .95 });
+      }
+    }
+    const slashGroup = new THREE.Group(); scene.add(slashGroup);
+    function slashEffect(isSkill) {
+      const color = isSkill ? 0x9df6e3 : 0xe5d5a5;
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(isSkill ? 2 : 1.4, .055, 6, 36, Math.PI * 1.3), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .92 }));
+      arc.position.copy(player.position).add(new THREE.Vector3(0, 1.05, 0)); arc.rotation.x = Math.PI / 2; arc.rotation.z = Math.random() * Math.PI; slashGroup.add(arc);
+      particles.push({ mesh: arc, velocity: new THREE.Vector3(0, .5, 0), life: .36, max: .36, remove: true });
+    }
+
+    const state = { phase: 'intro', dialogue: 0, health: 100, hits: 0, skillReady: true, attackReady: true, time: 0, toastTimer: 0, ending: false };
+    const lines = [
+      ['守城兵', '城主！西边的雾里全是幽灵，城门快守不住了！'],
+      ['城主', '全城戒备！老夫既已归来，便不会让它们踏进半步。'],
+      ['你', '城主，先退到灯阵之内。这些东西，我来拦住。'],
+      ['守城兵', '它们怕光！剑客大人，灯阵周围交给你了！'],
+      ['城主', '小心……幽灵身上缠着一股不属于此世的剑意。']
+    ];
+    const el = (id) => document.getElementById(id);
+    const dialogueEl = el('dialogue');
+    function showLine() {
+      if (state.dialogue >= lines.length) { beginBattle(); return; }
+      el('speaker').textContent = lines[state.dialogue][0];
+      el('line').textContent = lines[state.dialogue][1];
+      dialogueEl.classList.add('show');
+    }
+    function advanceDialogue() { if (state.phase !== 'dialogue') return; state.dialogue++; showLine(); }
+    dialogueEl.addEventListener('pointerdown', advanceDialogue);
+    function beginBattle() {
+      state.phase = 'battle'; dialogueEl.classList.remove('show');
+      el('intro').classList.remove('show'); el('objective').classList.add('show'); el('health').classList.add('show'); el('controls').classList.add('show');
+      player.visible = true; player.position.set(-1.3, 0, 2.5);
+      player.rotation.y = Math.PI;
+      ghosts.forEach(g => { g.visible = true; });
+      villagers.forEach((v, i) => { v.visible = true; v.position.x = -2.6 + i * 1.2; v.position.z = -3.7; });
+      el('objectiveText').textContent = '护住城主，击退幽灵';
+      updateEnemyCount();
+      toast('幽灵来袭！靠近后挥剑，剑气可同时击中多个目标');
+    }
+    function updateEnemyCount() {
+      const remaining = ghosts.filter(g => g.userData.alive).length;
+      el('enemyCount').textContent = `幽灵 ${3 - remaining} / 3`;
+      if (!remaining && state.phase === 'battle') finishBattle();
+    }
+    function finishBattle() {
+      state.phase = 'ending'; el('objectiveText').textContent = '幽灵已退，城门异动';
+      toast('最后一道剑意，竟与你的招式一模一样……');
+      setTimeout(() => { if (state.phase === 'ending') el('chapterEnd').classList.add('show'); }, 1900);
+    }
+    function toast(text) {
+      el('toast').textContent = text; el('toast').classList.add('show'); state.toastTimer = 2.7;
+    }
+    el('begin').addEventListener('click', () => {
+      el('begin').classList.remove('show'); state.phase = 'landing'; state.time = 0;
+      el('intro').classList.remove('show');
+    });
+    el('chapterEnd').addEventListener('click', () => {
+      if (state.phase !== 'ending') return;
+      el('chapterEnd').classList.remove('show'); toast('未完待续');
+    });
+
+    const keys = new Set();
+    addEventListener('keydown', (event) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
+      keys.add(event.code);
+      if (event.code === 'Space' && state.phase === 'battle') attack(false);
+      if ((event.code === 'KeyE' || event.code === 'ShiftLeft') && state.phase === 'battle') attack(true);
+      if (event.code === 'Enter' && state.phase === 'dialogue') advanceDialogue();
+    });
+    addEventListener('keyup', e => keys.delete(e.code));
+    const move = new THREE.Vector2();
+    const stick = el('stick'), knob = el('knob');
+    let stickPointer = null;
+    function setStick(e) {
+      const r = stick.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      const max = r.width * .34, len = Math.min(max, Math.hypot(dx, dy)), angle = Math.atan2(dy, dx);
+      const x = Math.cos(angle) * len, y = Math.sin(angle) * len;
+      knob.style.transform = `translate(${x}px, ${y}px)`;
+      move.set(x / max, -y / max);
+    }
+    stick.addEventListener('pointerdown', e => { stickPointer = e.pointerId; stick.setPointerCapture(e.pointerId); setStick(e); });
+    stick.addEventListener('pointermove', e => { if (e.pointerId === stickPointer) setStick(e); });
+    const releaseStick = e => { if (e.pointerId !== stickPointer) return; stickPointer = null; move.set(0, 0); knob.style.transform = 'translate(0, 0)'; };
+    stick.addEventListener('pointerup', releaseStick); stick.addEventListener('pointercancel', releaseStick);
+    el('attack').addEventListener('pointerdown', e => { e.preventDefault(); attack(false); });
+    el('skill').addEventListener('pointerdown', e => { e.preventDefault(); attack(true); });
+
+    function attack(skill) {
+      if (state.phase !== 'battle') return;
+      if (skill && !state.skillReady) { toast('剑气尚未凝成'); return; }
+      if (!skill && !state.attackReady) return;
+      if (skill) { state.skillReady = false; el('skill').style.filter = 'grayscale(1) brightness(.65)'; setTimeout(() => { state.skillReady = true; el('skill').style.filter = ''; }, 4300); }
+      else { state.attackReady = false; setTimeout(() => state.attackReady = true, 430); }
+      state.attackSwing = 1;
+      slashEffect(skill);
+      const reach = skill ? 5.8 : 3.05;
+      let struck = 0;
+      for (const ghost of ghosts) {
+        if (!ghost.userData.alive) continue;
+        const dist = player.position.distanceTo(ghost.position);
+        if (dist > reach) continue;
+        const direction = ghost.position.clone().sub(player.position).normalize();
+        const facing = new THREE.Vector3(Math.sin(player.rotation.y), 0, Math.cos(player.rotation.y));
+        if (!skill && facing.dot(direction) < -.32) continue;
+        ghost.userData.hp -= skill ? 2 : 1; struck++;
+        burst(ghost.position.clone().add(new THREE.Vector3(0, 1.1, 0)), skill ? 0xa5fff0 : 0xd9e7bd, skill ? 17 : 10, skill ? 4 : 2.6);
+        ghost.position.addScaledVector(direction, skill ? 1.35 : .65);
+        ghost.rotation.y += Math.PI * .6;
+        if (ghost.userData.hp <= 0) {
+          ghost.userData.alive = false; ghost.visible = false;
+          burst(ghost.position.clone().add(new THREE.Vector3(0, .9, 0)), 0x85eee1, 27, 4.4);
+        }
+      }
+      if (struck) { state.hits += struck; toast(skill ? `剑气扫中 ${struck} 个幽灵！` : '一剑命中！'); }
+      else if (skill) toast('剑气划破夜雾，幽灵还在更近处……');
+      updateEnemyCount();
+    }
+
+    function updatePlayer(dt) {
+      let x = move.x, z = move.y;
+      if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
+      if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
+      if (keys.has('KeyW') || keys.has('ArrowUp')) z -= 1;
+      if (keys.has('KeyS') || keys.has('ArrowDown')) z += 1;
+      const vec = new THREE.Vector2(x, z);
+      if (vec.lengthSq() > 1) vec.normalize();
+      player.position.x = THREE.MathUtils.clamp(player.position.x + vec.x * 5.2 * dt, -13, 13);
+      player.position.z = THREE.MathUtils.clamp(player.position.z + vec.y * 5.2 * dt, -25, 7);
+      if (vec.lengthSq() > .005) player.rotation.y = Math.atan2(vec.x, vec.y);
+      player.position.y = Math.abs(Math.sin(state.time * 8)) * (vec.lengthSq() > .03 ? .06 : .025);
+      const walking = Math.min(vec.length(), 1);
+      state.attackSwing = Math.max(0, (state.attackSwing || 0) - dt * 3.8);
+      for (const arm of player.userData.arms) arm.mesh.rotation.z = arm.rest + arm.side * (walking * Math.sin(state.time * 9) * .42) - (arm.side > 0 ? state.attackSwing * 1.55 : 0);
+      for (const leg of player.userData.legs) leg.mesh.rotation.x = walking * Math.sin(state.time * 9 + (leg.side > 0 ? Math.PI : 0)) * .42;
+      riderSword.rotation.z = -.85 + (walking ? Math.sin(state.time * 11) * .28 : 0) + state.attackSwing * 1.5;
+    }
+    function updateGhosts(dt) {
+      for (const ghost of ghosts) {
+        const data = ghost.userData; if (!data.alive) continue;
+        data.phase += dt * 2.2;
+        ghost.position.y = .15 + Math.sin(data.phase) * .22;
+        for (let i = 0; i < data.tatters.length; i++) {
+          data.tatters[i].rotation.z = Math.sin(data.phase * 1.4 + i * 1.7) * .22;
+          data.tatters[i].rotation.x = Math.cos(data.phase + i) * .16;
+        }
+        const dx = player.position.x - ghost.position.x, dz = player.position.z - ghost.position.z, dist = Math.hypot(dx, dz);
+        if (dist > 1.45) {
+          ghost.position.x += dx / dist * data.speed * dt;
+          ghost.position.z += dz / dist * data.speed * dt;
+          ghost.rotation.y = Math.atan2(dx, dz);
+        } else {
+          data.attackCooldown -= dt;
+          if (data.attackCooldown <= 0) {
+            data.attackCooldown = 1.45;
+            state.health = Math.max(0, state.health - 8);
+            el('healthFill').style.width = `${state.health}%`;
+            el('healthText').textContent = `${state.health} / 100`;
+            burst(player.position.clone().add(new THREE.Vector3(0, 1, 0)), 0xf18a71, 8, 1.5);
+            toast('被幽灵击中！走位躲开它们的爪子');
+            if (state.health <= 0) {
+              state.health = 60; el('healthFill').style.width = '60%'; el('healthText').textContent = '60 / 100';
+              player.position.set(-1.3, 0, 2.5); toast('侠心未灭！借灯阵之力重新站起');
+            }
+          }
+        }
+      }
+    }
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]; p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.velocity.y -= dt * 2;
+        if (p.mesh.material) p.mesh.material.opacity = Math.max(0, p.life / p.max);
+        if (p.life <= 0) { scene.remove(p.mesh); p.mesh.geometry.dispose(); if (p.remove && p.mesh.material) p.mesh.material.dispose(); particles.splice(i, 1); }
+      }
+    }
+    const camTarget = new THREE.Vector3();
+    function updateCamera(dt) {
+      let desired;
+      if (state.phase === 'intro' || state.phase === 'landing') desired = new THREE.Vector3(0, 6.5, 13);
+      else desired = new THREE.Vector3(player.position.x * .58, 7.4, player.position.z + 12.6);
+      camera.position.lerp(desired, 1 - Math.exp(-dt * 2.6));
+      const look = state.phase === 'intro' || state.phase === 'landing' ? new THREE.Vector3(0, 1.2, -11) : new THREE.Vector3(player.position.x * .42, 1.1, player.position.z - 5);
+      camTarget.lerp(look, 1 - Math.exp(-dt * 3.2)); camera.lookAt(camTarget);
+    }
+    function updateLanding(dt) {
+      state.time += dt;
+      swordRide.position.y = Math.max(.8, 8 - state.time * 2.4);
+      swordRide.position.z = 14 - Math.min(state.time * 3.7, 16);
+      swordRide.rotation.z = Math.sin(state.time * 1.8) * .045;
+      swordRide.rotation.x = Math.sin(state.time * 1.5) * .025;
+      if (state.time > 2.4 && !swordRide.userData.landed) {
+        swordRide.userData.landed = true;
+        burst(new THREE.Vector3(0, .3, -1.7), 0xd4e7c2, 30, 3.3);
+        villagers.forEach(v => v.visible = true);
+      }
+      if (state.time > 3.1 && !state.dialogueStarted) {
+        state.dialogueStarted = true; swordRide.visible = false;
+        player.position.set(-1.3, 0, 2.5); player.visible = true;
+        state.phase = 'dialogue'; showLine();
+      }
+    }
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), .04); state.time += state.phase === 'battle' ? dt : 0;
+      if (state.phase === 'landing') updateLanding(dt);
+      if (state.phase === 'battle') { updatePlayer(dt); updateGhosts(dt); }
+      if (state.phase === 'battle' || state.phase === 'ending') {
+        const remaining = ghosts.filter(g => g.userData.alive).length;
+        el('enemyCount').textContent = `幽灵 ${3 - remaining} / 3`;
+      }
+      if (state.toastTimer > 0) { state.toastTimer -= dt; if (state.toastTimer <= 0) el('toast').classList.remove('show'); }
+      updateParticles(dt); updateCamera(dt);
+      for (const flame of lanternLights) flame.light.intensity = 19 + Math.sin(state.time * 5 + flame.phase) * 2 + Math.sin(state.time * 13 + flame.phase) * .8;
+      for (const v of villagers) if (v.visible) v.rotation.y = Math.PI + Math.sin(state.time * 1.8 + v.position.x) * .08;
+      renderer.render(scene, camera);
+    }
+    animate();
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+    });
+  </script>
+</body>
+</html>
