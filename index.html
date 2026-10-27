@@ -79,6 +79,7 @@
     .desktop-hint kbd { border: 1px solid rgba(227, 222, 201, .32); padding: 2px 5px; margin-left: 5px; color: #e9e4d7; background: rgba(14, 24, 27, .52); font: 10px sans-serif; }
     .toast { position: fixed; left: 50%; top: 19%; transform: translate(-50%, -5px); color: #f1dfa6; font-size: 13px; letter-spacing: 2px; text-shadow: 0 2px 12px #000; opacity: 0; transition: .3s ease; pointer-events: none; white-space: nowrap; }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.error { width: min(680px, calc(100% - 32px)); white-space: normal; text-align: center; overflow-wrap: anywhere; color: #ffd1bc; }
     .chapter-end { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; background: rgba(5, 12, 15, .55); opacity: 0; visibility: hidden; transition: .8s; }
     .chapter-end.show { opacity: 1; visibility: visible; }
     .end-copy { text-align: center; transform: translateY(12px); transition: .7s .2s; }
@@ -144,23 +145,23 @@
 
   <script>
     window.__chivalryReady = false;
-    window.addEventListener('error', () => {
+    function showStartupError(detail) {
       if (window.__chivalryReady) return;
       const toast = document.getElementById('toast');
-      toast.textContent = '游戏场景加载失败，请刷新页面后重试';
-      toast.classList.add('show');
+      toast.textContent = `游戏启动失败：${detail}。请使用支持 WebGL 2 的桌面浏览器并开启硬件加速。`;
+      toast.classList.add('show', 'error');
+      console.error('Game startup failed:', detail);
+    }
+    window.addEventListener('error', event => {
+      const detail = event.message || event.target?.src || event.target?.href || '未知脚本或资源错误';
+      showStartupError(detail);
     });
-    window.addEventListener('unhandledrejection', () => {
-      if (window.__chivalryReady) return;
-      const toast = document.getElementById('toast');
-      toast.textContent = '游戏资源加载失败，请检查网络后刷新';
-      toast.classList.add('show');
+    window.addEventListener('unhandledrejection', event => {
+      showStartupError(event.reason?.message || String(event.reason || '未知资源错误'));
     });
     setTimeout(() => {
       if (window.__chivalryReady) return;
-      const toast = document.getElementById('toast');
-      toast.textContent = '游戏仍在加载，请确认网络可访问 Three.js';
-      toast.classList.add('show');
+      showStartupError('场景初始化超时');
     }, 12000);
   </script>
   <script type="importmap">
@@ -753,9 +754,9 @@
       for (const flame of lanternLights) flame.light.intensity = 19 + Math.sin(state.time * 5 + flame.phase) * 2 + Math.sin(state.time * 13 + flame.phase) * .8;
       for (const v of villagers) if (v.visible) v.rotation.y = Math.PI + Math.sin(state.time * 1.8 + v.position.x) * .08;
       composer.render();
+      window.__chivalryReady = true;
     }
     animate();
-    window.__chivalryReady = true;
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
