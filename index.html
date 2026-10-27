@@ -142,6 +142,27 @@
   </div>
   <section class="chapter-end" id="chapterEnd"><div class="end-copy"><div class="end-kicker">第一章 · 完</div><h2>城门之后，还有谁？</h2><p>幽灵退散，城中却无人记得那道黑影。<br>它站在城墙之上，手里握着一柄与你一模一样的剑。</p><div class="next">第二章 · 镜中人　即将开启</div></div></section>
 
+  <script>
+    window.__chivalryReady = false;
+    window.addEventListener('error', () => {
+      if (window.__chivalryReady) return;
+      const toast = document.getElementById('toast');
+      toast.textContent = '游戏场景加载失败，请刷新页面后重试';
+      toast.classList.add('show');
+    });
+    window.addEventListener('unhandledrejection', () => {
+      if (window.__chivalryReady) return;
+      const toast = document.getElementById('toast');
+      toast.textContent = '游戏资源加载失败，请检查网络后刷新';
+      toast.classList.add('show');
+    });
+    setTimeout(() => {
+      if (window.__chivalryReady) return;
+      const toast = document.getElementById('toast');
+      toast.textContent = '游戏仍在加载，请确认网络可访问 Three.js';
+      toast.classList.add('show');
+    }, 12000);
+  </script>
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
 
@@ -455,7 +476,7 @@
       dialogueEl.classList.add('show');
     }
     function advanceDialogue() { if (state.phase !== 'dialogue') return; state.dialogue++; showLine(); }
-    dialogueEl.addEventListener('pointerdown', advanceDialogue);
+    dialogueEl.addEventListener('click', advanceDialogue);
     function beginBattle() {
       state.phase = 'battle'; dialogueEl.classList.remove('show');
       el('intro').classList.remove('show'); el('objective').classList.add('show'); el('health').classList.add('show'); el('controls').classList.add('show');
@@ -512,8 +533,8 @@
     stick.addEventListener('pointermove', e => { if (e.pointerId === stickPointer) setStick(e); });
     const releaseStick = e => { if (e.pointerId !== stickPointer) return; stickPointer = null; move.set(0, 0); knob.style.transform = 'translate(0, 0)'; };
     stick.addEventListener('pointerup', releaseStick); stick.addEventListener('pointercancel', releaseStick);
-    el('attack').addEventListener('pointerdown', e => { e.preventDefault(); attack(false); });
-    el('skill').addEventListener('pointerdown', e => { e.preventDefault(); attack(true); });
+    el('attack').addEventListener('click', () => attack(false));
+    el('skill').addEventListener('click', () => attack(true));
 
     function attack(skill) {
       if (state.phase !== 'battle') return;
@@ -645,6 +666,7 @@
       renderer.render(scene, camera);
     }
     animate();
+    window.__chivalryReady = true;
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
